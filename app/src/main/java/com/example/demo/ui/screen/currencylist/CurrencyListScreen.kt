@@ -1,8 +1,5 @@
 package com.example.demo.ui.screen.currencylist
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,87 +32,95 @@ fun CurrencyListScreen(
     val filteredList by viewModel.filteredList.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
-    var isSearchVisible by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
     
     LaunchedEffect(currencies) {
         viewModel.setCurrencyList(ArrayList(currencies))
     }
     
-    LaunchedEffect(isSearchVisible) {
-        if (isSearchVisible) {
-            focusRequester.requestFocus()
-        }
-    }
-    
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Currency List (${currencies.size})") },
-                navigationIcon = {
-                    onNavigateUp?.let { navigateUp ->
-                        IconButton(onClick = navigateUp) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
-                    }
-                }
+            CurrencyListTopBar(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { query ->
+                    searchQuery = query
+                    viewModel.updateSearchQuery(query)
+                },
+                onClearSearch = {
+                    searchQuery = ""
+                    viewModel.clearSearch()
+                },
+                onNavigateUp = onNavigateUp
             )
         },
         modifier = modifier
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                AnimatedVisibility(
-                    visible = isSearchVisible,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    SearchBar(
-                        query = searchQuery,
-                        onQueryChange = { query ->
-                            searchQuery = query
-                            viewModel.updateSearchQuery(query)
-                        },
-                        onCancel = {
-                            isSearchVisible = false
-                            searchQuery = ""
-                            viewModel.clearSearch()
-                        },
-                        focusRequester = focusRequester
-                    )
-                }
-                
-                if (filteredList.isEmpty()) {
-                    EmptyState(
-                        isSearching = isSearching,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    CurrencyList(
-                        currencies = filteredList,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-            
-            if (!isSearchVisible) {
-                FloatingActionButton(
-                    onClick = { isSearchVisible = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                }
+            if (filteredList.isEmpty()) {
+                EmptyState(
+                    isSearching = isSearching,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                CurrencyList(
+                    currencies = filteredList,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CurrencyListTopBar(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onClearSearch: () -> Unit,
+    onNavigateUp: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
+        title = {
+            TextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search currencies...") },
+                singleLine = true,
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = onClearSearch) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search"
+                            )
+                        }
+                    }
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                    focusedIndicatorColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                )
+            )
+        },
+        navigationIcon = {
+            onNavigateUp?.let { navigateUp ->
+                IconButton(onClick = navigateUp) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @Composable
