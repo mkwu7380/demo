@@ -3,54 +3,33 @@ package com.example.demo.ui.screen.demo
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-
 @Composable
 fun DemoScreen(
-    viewModel: DemoViewModel,
-    onLoadCryptoList: () -> Unit,
-    onLoadFiatList: () -> Unit,
-    onLoadPurchasableList: () -> Unit
+    uiState: DemoUIState,
+    onAction: (DemoAction) -> Unit
 ) {
-    val message by viewModel.message.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    
-    LaunchedEffect(message) {
-        message?.let {
+
+    LaunchedEffect(uiState.message) {
+        uiState.message?.let {
             snackbarHostState.showSnackbar(it)
-            viewModel.clearMessage()
+            onAction(DemoAction.ClearMessage)
         }
     }
-    
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 40.dp),
         ) {
-            Text(
-                text = "Currency Demo",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            Text(
-                text = "API Simulation + Database Persistence",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
-            )
-            
-            if (isLoading) {
+            if (uiState.isLoading) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -74,133 +53,102 @@ fun DemoScreen(
                     }
                 }
             }
-            
+
             Text(
                 text = "Database Operations",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp)
             )
-            
+
             OutlinedButton(
-                onClick = { viewModel.clearDatabase() },
+                onClick = { onAction(DemoAction.ClearDatabase) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = !isLoading
+                enabled = !uiState.isLoading
             ) {
                 Text("Clear Database")
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Button(
-                onClick = { viewModel.insertData() },
+                onClick = { onAction(DemoAction.InsertData) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = !isLoading
+                enabled = !uiState.isLoading
             ) {
                 Text("Insert Data into Database")
             }
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Text(
                 text = "Currency Lists",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
+
             Button(
-                onClick = onLoadCryptoList,
+                onClick = { onAction(DemoAction.LoadCryptoCurrencies) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = !isLoading
+                enabled = !uiState.isLoading
             ) {
                 Text("Load Currency List A (Crypto)")
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Button(
-                onClick = onLoadFiatList,
+                onClick = { onAction(DemoAction.LoadFiatCurrencies) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = !isLoading
+                enabled = !uiState.isLoading
             ) {
                 Text("Load Currency List B (Fiat)")
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Button(
-                onClick = onLoadPurchasableList,
+                onClick = { onAction(DemoAction.LoadPurchasableCurrencies) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = !isLoading
+                enabled = !uiState.isLoading
             ) {
                 Text("Display Purchasable Currencies")
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
-@Preview(showBackground = true, heightDp = 600)
+@Preview(showBackground = true, name = "Default State")
 @Composable
-fun PreviewDemoScreen() {
+fun PreviewDemoScreenDefault() {
     MaterialTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Currency Demo",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            OutlinedButton(
-                onClick = {},
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Clear Database")
-            }
-            
-            Button(
-                onClick = {},
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Insert Data into Database")
-            }
-            
-            Button(
-                onClick = {},
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Load Currency List A (Crypto)")
-            }
-            
-            Button(
-                onClick = {},
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Load Currency List B (Fiat)")
-            }
-            
-            Button(
-                onClick = {},
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Display Purchasable Currencies")
-            }
-        }
+        DemoScreen(uiState = DemoUIState(
+            message = null, isLoading = false, loadedCurrencies = null
+        ), onAction = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Loading State")
+@Composable
+fun PreviewDemoScreenLoading() {
+    MaterialTheme {
+        DemoScreen(uiState = DemoUIState(
+            message = null, isLoading = true, loadedCurrencies = null
+        ), onAction = {})
     }
 }

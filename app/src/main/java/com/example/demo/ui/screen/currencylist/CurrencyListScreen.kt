@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -14,8 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,52 +21,33 @@ import com.example.demo.domain.model.CurrencyInfo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CurrencyListScreen(
-    currencies: List<CurrencyInfo>,
-    viewModel: CurrencyListViewModel,
-    onNavigateUp: (() -> Unit)? = null,
+    uiState: CurrencyListUIState,
+    onAction: (CurrencyListAction) -> Unit,
+    onNavigateAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val filteredList by viewModel.filteredList.collectAsState()
-    val isSearching by viewModel.isSearching.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
-    
-    LaunchedEffect(currencies) {
-        viewModel.setCurrencyList(ArrayList(currencies))
-    }
-    
-    Scaffold(
-        topBar = {
-            CurrencyListTopBar(
-                searchQuery = searchQuery,
-                onSearchQueryChange = { query ->
-                    searchQuery = query
-                    viewModel.updateSearchQuery(query)
-                },
-                onClearSearch = {
-                    searchQuery = ""
-                    viewModel.clearSearch()
-                },
-                onNavigateUp = onNavigateUp
+    Column(modifier = modifier.fillMaxSize()) {
+        CurrencyListTopBar(
+            searchQuery = uiState.searchQuery,
+            onSearchQueryChange = { query ->
+                onAction(CurrencyListAction.UpdateSearchQuery(query))
+            },
+            onClearSearch = {
+                onAction(CurrencyListAction.ClearSearch)
+            },
+            onNavigateAction = onNavigateAction
+        )
+        
+        if (uiState.filteredList.isEmpty()) {
+            EmptyState(
+                isSearching = uiState.isSearching,
+                modifier = Modifier.fillMaxSize()
             )
-        },
-        modifier = modifier
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (filteredList.isEmpty()) {
-                EmptyState(
-                    isSearching = isSearching,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                CurrencyList(
-                    currencies = filteredList,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+        } else {
+            CurrencyList(
+                currencies = uiState.filteredList,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -80,7 +58,7 @@ fun CurrencyListTopBar(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onClearSearch: () -> Unit,
-    onNavigateUp: (() -> Unit)?,
+    onNavigateAction: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
@@ -110,7 +88,7 @@ fun CurrencyListTopBar(
             )
         },
         navigationIcon = {
-            onNavigateUp?.let { navigateUp ->
+            onNavigateAction?.let { navigateUp ->
                 IconButton(onClick = navigateUp) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -123,61 +101,6 @@ fun CurrencyListTopBar(
     )
 }
 
-@Composable
-fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onCancel: () -> Unit,
-    focusRequester: FocusRequester,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                modifier = Modifier.padding(start = 12.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .focusRequester(focusRequester),
-                placeholder = { Text("Search currency...") },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedIndicatorColor = MaterialTheme.colorScheme.surface,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.surface,
-                    disabledIndicatorColor = MaterialTheme.colorScheme.surface
-                )
-            )
-            
-            IconButton(onClick = onCancel) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Cancel",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun CurrencyList(
@@ -192,7 +115,7 @@ fun CurrencyList(
             CurrencyCard(currency = currency)
             if (currency != currencies.last()) {
                 HorizontalDivider(
-                    modifier = Modifier.padding(start = 80.dp),
+                    modifier = Modifier.padding(start = 60.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
             }
@@ -212,9 +135,9 @@ fun CurrencyCard(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(32.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = MaterialTheme.colorScheme.outlineVariant,
             tonalElevation = 2.dp
         ) {
             Box(
@@ -229,9 +152,9 @@ fun CurrencyCard(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.width(16.dp))
-        
+
         Text(
             text = currency.name,
             style = MaterialTheme.typography.bodyLarge,
@@ -239,14 +162,14 @@ fun CurrencyCard(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        
+
         Text(
             text = currency.code ?: currency.symbol,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(end = 8.dp)
         )
-        
+
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
@@ -265,7 +188,7 @@ fun EmptyState(
             .fillMaxSize()
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         Icon(
             imageVector = Icons.Default.Search,
@@ -273,18 +196,18 @@ fun EmptyState(
             modifier = Modifier.size(120.dp),
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
-            text = if (isSearching) "No currencies found" else "No currencies available",
+            text = "No Results",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = if (isSearching) "Try adjusting your search" else "Load data from the buttons above",
             style = MaterialTheme.typography.bodyMedium,
@@ -317,19 +240,6 @@ fun PreviewCurrencyList() {
                 CurrencyInfo("BCH", "Bitcoin Cash", "BCH"),
                 CurrencyInfo("LTC", "Litecoin", "LTC")
             )
-        )
-    }
-}
-
-@Preview(name = "Search Bar", showBackground = true)
-@Composable
-fun PreviewSearchBar() {
-    MaterialTheme {
-        SearchBar(
-            query = "eth",
-            onQueryChange = {},
-            onCancel = {},
-            focusRequester = remember { FocusRequester() }
         )
     }
 }
