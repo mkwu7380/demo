@@ -3,46 +3,88 @@ package com.example.demo.ui.screen.currencylist
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.demo.domain.model.CurrencyInfo
+import com.example.demo.domain.model.CurrencyType
+import com.example.demo.domain.usecase.ObserveAllCurrencies
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class CurrencyListViewModel : ViewModel() {
+sealed class CurrencyListAction {
+    data class UpdateSearchQuery(val query: String) : CurrencyListAction()
+    data object ClearSearch : CurrencyListAction()
+}
+
+data class CurrencyListUIState(
+    val currencyList: List<CurrencyInfo> = emptyList(),
+    val filteredList: List<CurrencyInfo> = emptyList(),
+    val searchQuery: String = "",
+    val isSearching: Boolean = false
+)
+
+class CurrencyListViewModel(
+    private val observeAllCurrencies: ObserveAllCurrencies,
+    private val currencyType: CurrencyType
+) : ViewModel() {
     
-    private val _currencyList = MutableStateFlow<List<CurrencyInfo>>(emptyList())
-    val currencyList: StateFlow<List<CurrencyInfo>> = _currencyList.asStateFlow()
+    private val _uiState = MutableStateFlow(CurrencyListUIState())
+    val uiState: StateFlow<CurrencyListUIState> = _uiState.asStateFlow()
     
-    private val _filteredList = MutableStateFlow<List<CurrencyInfo>>(emptyList())
-    val filteredList: StateFlow<List<CurrencyInfo>> = _filteredList.asStateFlow()
-    
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-    
-    private val _isSearching = MutableStateFlow(false)
-    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
-    
-    fun setCurrencyList(currencies: ArrayList<CurrencyInfo>) {
-        viewModelScope.launch {
-            _currencyList.value = currencies
-            _filteredList.value = currencies
-        }
+    init {
+        observeCurrenciesFromDatabase()
     }
     
-    fun updateSearchQuery(query: String) {
+    private fun observeCurrenciesFromDatabase() {
         viewModelScope.launch {
-            _searchQuery.value = query
-            _isSearching.value = query.isNotEmpty()
-            
-            if (query.isEmpty()) {
-                _filteredList.value = _currencyList.value
-            } else {
-                val searchTerm = query.trim().lowercase()
-                _filteredList.value = _currencyList.value.filter { currency ->
-                    matchesSearchCriteria(currency, searchTerm)
+            observeAllCurrencies(currencyType).collect { currencies ->
+                _uiState.update { currentState ->
+                    val filteredList = if (currentState.searchQuery.isEmpty()) {
+                        currencies
+                    } else {
+                        val searchTerm = currentState.searchQuery.trim().lowercase()
+                        currencies.filter { currency ->
+                            matchesSearchCriteria(currency, searchTerm)
+                        }
+                    }
+                    currentState.copy(
+                        currencyList = currencies,
+                        filteredList = filteredList
+                    )
                 }
             }
         }
+    }
+    
+    fun onAction(action: CurrencyListAction) {
+        when (action) {
+            is CurrencyListAction.UpdateSearchQuery -> handleUpdateSearchQuery(action.query)
+            is CurrencyListAction.ClearSearch -> handleClearSearch()
+        }
+    }
+    
+    private fun handleUpdateSearchQuery(query: String) {
+        viewModelScope.launch {
+            val isSearching = query.isNotEmpty()
+            val filteredList = if (query.isEmpty()) {
+                _uiState.value.currencyList
+            } else {
+                val searchTerm = query.trim().lowercase()
+                _uiState.value.currencyList.filter { currency ->
+                    matchesSearchCriteria(currency, searchTerm)
+                }
+            }
+            
+            _uiState.update { it.copy(
+                searchQuery = query,
+                isSearching = isSearching,
+                filteredList = filteredList
+            ) }
+        }
+    }
+    
+    private fun handleClearSearch() {
+        handleUpdateSearchQuery("")
     }
     
     private fun matchesSearchCriteria(currency: CurrencyInfo, searchTerm: String): Boolean {
@@ -67,9 +109,5 @@ class CurrencyListViewModel : ViewModel() {
         }
         
         return false
-    }
-    
-    fun clearSearch() {
-        updateSearchQuery("")
     }
 }

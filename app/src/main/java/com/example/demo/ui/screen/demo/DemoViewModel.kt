@@ -3,6 +3,7 @@ package com.example.demo.ui.screen.demo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.demo.domain.model.CurrencyInfo
+import com.example.demo.domain.model.CurrencyType
 import com.example.demo.domain.usecase.ClearDatabase
 import com.example.demo.domain.usecase.GetCryptoCurrencies
 import com.example.demo.domain.usecase.GetFiatCurrencies
@@ -11,7 +12,25 @@ import com.example.demo.domain.usecase.InsertCurrencies
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+sealed class DemoAction {
+    data object ClearDatabase : DemoAction()
+    data object InsertData : DemoAction()
+    data object LoadCryptoCurrencies : DemoAction()
+    data object LoadFiatCurrencies : DemoAction()
+    data object LoadPurchasableCurrencies : DemoAction()
+    data object ClearLoadedCurrencies : DemoAction()
+    data object ClearMessage : DemoAction()
+}
+
+data class DemoUIState(
+    val message: String? = null,
+    val isLoading: Boolean = false,
+    val loadedCurrencies: List<CurrencyInfo>? = null,
+    val currencyType: CurrencyType? = null
+)
 
 class DemoViewModel(
     private val clearDatabase: ClearDatabase,
@@ -21,93 +40,122 @@ class DemoViewModel(
     private val getPurchasableCurrencies: GetPurchasableCurrencies
 ) : ViewModel() {
     
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private val _uiState = MutableStateFlow(DemoUIState())
+    val uiState: StateFlow<DemoUIState> = _uiState.asStateFlow()
     
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    fun onAction(action: DemoAction) {
+        when (action) {
+            is DemoAction.ClearDatabase -> handleClearDatabase()
+            is DemoAction.InsertData -> handleInsertData()
+            is DemoAction.LoadCryptoCurrencies -> handleLoadCryptoCurrencies()
+            is DemoAction.LoadFiatCurrencies -> handleLoadFiatCurrencies()
+            is DemoAction.LoadPurchasableCurrencies -> handleLoadPurchasableCurrencies()
+            is DemoAction.ClearLoadedCurrencies -> handleClearLoadedCurrencies()
+            is DemoAction.ClearMessage -> handleClearMessage()
+        }
+    }
     
-    private val _loadedCurrencies = MutableStateFlow<List<CurrencyInfo>?>(null)
-    val loadedCurrencies: StateFlow<List<CurrencyInfo>?> = _loadedCurrencies.asStateFlow()
-    
-    fun clearDatabase() {
+    private fun handleClearDatabase() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                this@DemoViewModel.clearDatabase.invoke()
-                _message.value = "Database cleared successfully"
+                clearDatabase.invoke()
+                _uiState.update { it.copy(
+                    message = "Database cleared successfully",
+                    isLoading = false
+                ) }
             } catch (e: Exception) {
-                _message.value = "Error clearing database: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                _uiState.update { it.copy(
+                    message = "Error clearing database: ${e.message}",
+                    isLoading = false
+                ) }
             }
         }
     }
     
-    fun insertData() {
+    private fun handleInsertData() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 insertCurrencies()
-                _message.value = "Currencies inserted into database successfully"
+                _uiState.update { it.copy(
+                    message = "Currencies inserted into database successfully",
+                    isLoading = false
+                ) }
             } catch (e: Exception) {
-                _message.value = "Error inserting data: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                _uiState.update { it.copy(
+                    message = "Error inserting data: ${e.message}",
+                    isLoading = false
+                ) }
             }
         }
     }
     
-    fun loadCryptoCurrencies() {
+    private fun handleLoadCryptoCurrencies() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val cryptoCurrencies = getCryptoCurrencies()
-                _loadedCurrencies.value = cryptoCurrencies
-                _message.value = "Loaded ${cryptoCurrencies.size} crypto currencies from database"
+                _uiState.update { it.copy(
+                    loadedCurrencies = cryptoCurrencies,
+                    currencyType = CurrencyType.CRYPTO,
+                    message = "Loaded ${cryptoCurrencies.size} crypto currencies from database",
+                    isLoading = false
+                ) }
             } catch (e: Exception) {
-                _message.value = "Error loading crypto currencies: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                _uiState.update { it.copy(
+                    message = "Error loading crypto currencies: ${e.message}",
+                    isLoading = false
+                ) }
             }
         }
     }
     
-    fun loadFiatCurrencies() {
+    private fun handleLoadFiatCurrencies() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val fiatCurrencies = getFiatCurrencies()
-                _loadedCurrencies.value = fiatCurrencies
-                _message.value = "Loaded ${fiatCurrencies.size} fiat currencies from database"
+                _uiState.update { it.copy(
+                    loadedCurrencies = fiatCurrencies,
+                    currencyType = CurrencyType.FIAT,
+                    message = "Loaded ${fiatCurrencies.size} fiat currencies from database",
+                    isLoading = false
+                ) }
             } catch (e: Exception) {
-                _message.value = "Error loading fiat currencies: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                _uiState.update { it.copy(
+                    message = "Error loading fiat currencies: ${e.message}",
+                    isLoading = false
+                ) }
             }
         }
     }
     
-    fun loadPurchasableCurrencies() {
+    private fun handleLoadPurchasableCurrencies() {
         viewModelScope.launch {
-            _isLoading.value = true
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val currencies = getPurchasableCurrencies()
-                _loadedCurrencies.value = currencies
-                _message.value = "Loaded ${currencies.size} purchasable currencies from API"
+                _uiState.update { it.copy(
+                    loadedCurrencies = currencies,
+                    currencyType = CurrencyType.ALL,
+                    message = "Loaded ${currencies.size} purchasable currencies from API",
+                    isLoading = false
+                ) }
             } catch (e: Exception) {
-                _message.value = "Error loading purchasable currencies: ${e.message}"
-            } finally {
-                _isLoading.value = false
+                _uiState.update { it.copy(
+                    message = "Error loading purchasable currencies: ${e.message}",
+                    isLoading = false
+                ) }
             }
         }
     }
     
-    fun clearLoadedCurrencies() {
-        _loadedCurrencies.value = null
+    private fun handleClearLoadedCurrencies() {
+        _uiState.update { it.copy(loadedCurrencies = null, currencyType = null) }
     }
     
-    fun clearMessage() {
-        _message.value = null
+    private fun handleClearMessage() {
+        _uiState.update { it.copy(message = null) }
     }
 }
