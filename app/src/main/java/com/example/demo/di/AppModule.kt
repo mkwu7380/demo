@@ -69,5 +69,10 @@ class AppModule(private val context: Context) {
         fun bindInsertCurrencies(
             impl: com.example.demo.domain.usecase.InsertCurrenciesImpl
         ): com.example.demo.domain.usecase.InsertCurrencies
+        
+        @Binds
+        fun bindObserveAllCurrencies(
+            impl: com.example.demo.domain.usecase.ObserveAllCurrenciesImpl
+        ): com.example.demo.domain.usecase.ObserveAllCurrencies
     }
 }
