@@ -8,6 +8,8 @@ import com.example.demo.domain.usecase.GetCryptoCurrencies
 import com.example.demo.domain.usecase.GetFiatCurrencies
 import com.example.demo.domain.usecase.GetPurchasableCurrencies
 import com.example.demo.domain.usecase.InsertCurrencies
+import com.example.demo.ui.viewmodel.demo.DemoAction
+import com.example.demo.ui.viewmodel.demo.DemoViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

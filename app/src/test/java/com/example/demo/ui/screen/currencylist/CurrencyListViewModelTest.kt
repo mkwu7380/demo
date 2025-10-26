@@ -4,6 +4,8 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.demo.domain.model.CurrencyInfo
 import com.example.demo.domain.model.CurrencyType
 import com.example.demo.domain.usecase.ObserveAllCurrencies
+import com.example.demo.ui.viewmodel.currencylist.CurrencyListAction
+import com.example.demo.ui.viewmodel.currencylist.CurrencyListViewModel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
