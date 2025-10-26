@@ -54,6 +54,11 @@ android {
     }
 }
 
+kotlin {
+    // Request Java 17 via Gradle toolchains for cross-platform builds
+    jvmToolchain(17)
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
