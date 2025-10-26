@@ -1,4 +1,4 @@
-package com.example.demo.ui.screen.currencylist
+package com.example.demo.ui.viewmodel.currencylist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

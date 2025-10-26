@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.demo.domain.model.CurrencyInfo
+import com.example.demo.ui.viewmodel.currencylist.CurrencyListAction
+import com.example.demo.ui.viewmodel.currencylist.CurrencyListUIState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

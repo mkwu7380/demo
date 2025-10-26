@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -14,6 +13,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.demo.CurrencyApplication
 import com.example.demo.domain.model.CurrencyType
+import com.example.demo.ui.viewmodel.currencylist.CurrencyListViewModel
+import com.example.demo.ui.viewmodel.currencylist.CurrencyListViewModelFactory
 import javax.inject.Inject
 
 class CurrencyListFragment : Fragment() {
